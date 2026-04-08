@@ -7,10 +7,11 @@ A beginner-friendly Data Structures & Algorithms visualizer built with **React (
 - Sorting Visualizer
   - Bubble Sort, Selection Sort, Merge Sort, Quick Sort
   - Step-by-step animation using precomputed **step arrays** (compare/swap/overwrite)
+  - Advanced controls (branch `advanced`): array size + value range, live stats, optional sound
 - Graph Visualizer (grid)
   - Click/drag to add/remove walls
-  - Shift+Click to move Start, Alt+Click to move End
-  - BFS, DFS, Dijkstra
+  - Drag Start/End to move (branch `advanced`)
+  - BFS, DFS, Dijkstra, A* (branch `advanced`)
   - Step-by-step animation using precomputed **step arrays** (visit/path)
 - Controls
   - New / Start / Pause / Reset / Next
@@ -21,6 +22,16 @@ A beginner-friendly Data Structures & Algorithms visualizer built with **React (
 ## Setup
 
 ```bash
+npm install
+npm run dev
+```
+
+## Advanced version
+
+This workspace also includes an "advanced" branch with extra features.
+
+```bash
+git checkout advanced
 npm install
 npm run dev
 ```
