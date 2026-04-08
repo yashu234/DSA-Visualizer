@@ -43,14 +43,14 @@ export default function Controls({
           )}
         </div>
 
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-1 gap-3">
           <label className="flex flex-col gap-1 text-xs text-slate-300">
             Algorithm
             <select
               value={algorithm}
               onChange={(e) => onAlgorithmChange?.(e.target.value)}
               disabled={isRunning}
-              className="h-10 rounded-lg border border-slate-800 bg-slate-950 px-3 text-sm text-slate-100"
+              className="h-11 rounded-lg border border-slate-800 bg-slate-950 px-3 text-sm text-slate-100"
             >
               {algorithmOptions.map((opt) => (
                 <option key={opt.value} value={opt.value}>
@@ -68,31 +68,31 @@ export default function Controls({
               max={80}
               value={speed}
               onChange={(e) => onSpeedChange?.(Number(e.target.value))}
-              className="h-10"
+              className="h-11"
             />
           </label>
 
-          <div className="flex flex-col gap-2 sm:col-span-2 lg:col-span-2">
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+          <div className="flex flex-col gap-2">
+            <div className="grid grid-cols-2 gap-2">
               <button
                 type="button"
                 onClick={onGenerate}
                 disabled={isRunning}
-                className="h-10 rounded-lg bg-slate-800 px-3 text-sm font-medium hover:bg-slate-700 disabled:opacity-50"
+                className="h-11 rounded-lg bg-slate-800 px-4 text-sm font-medium hover:bg-slate-700 disabled:opacity-50"
               >
                 {generateLabel ?? 'Generate'}
               </button>
               <button
                 type="button"
                 onClick={isRunning ? onPause : onStart}
-                className="h-10 rounded-lg bg-slate-100 px-3 text-sm font-semibold text-slate-900 hover:bg-white"
+                className="h-11 rounded-lg bg-slate-100 px-4 text-sm font-semibold text-slate-900 hover:bg-white"
               >
                 {isRunning ? 'Pause' : 'Start'}
               </button>
               <button
                 type="button"
                 onClick={onReset}
-                className="h-10 rounded-lg bg-slate-800 px-3 text-sm font-medium hover:bg-slate-700"
+                className="h-11 rounded-lg bg-slate-800 px-4 text-sm font-medium hover:bg-slate-700"
               >
                 Reset
               </button>
@@ -100,7 +100,7 @@ export default function Controls({
                 type="button"
                 onClick={onNext}
                 disabled={!canNext || isRunning}
-                className="h-10 rounded-lg bg-slate-800 px-3 text-sm font-medium hover:bg-slate-700 disabled:opacity-50"
+                className="h-11 rounded-lg bg-slate-800 px-4 text-sm font-medium hover:bg-slate-700 disabled:opacity-50"
               >
                 Next
               </button>
