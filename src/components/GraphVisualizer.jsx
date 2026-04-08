@@ -27,7 +27,11 @@ export default function GraphVisualizer() {
   const [stepIndex, setStepIndex] = useState(0)
 
   const [visited, setVisited] = useState(() => new Set())
+  const [frontier, setFrontier] = useState(() => new Set())
   const [path, setPath] = useState(() => new Set())
+  const [result, setResult] = useState(null) // 'found' | 'not_found' | null
+
+  const foundRef = useRef(null)
 
   const [isRunning, setIsRunning] = useState(false)
   const isRunningRef = useRef(false)
@@ -54,13 +58,36 @@ export default function GraphVisualizer() {
 
   function resetOverlays() {
     setVisited(new Set())
+    setFrontier(new Set())
     setPath(new Set())
+    setResult(null)
   }
 
   function invalidateRunState() {
     setSteps([])
     setStepIndex(0)
     resetOverlays()
+  }
+
+  function clearPathOnly() {
+    if (isRunningRef.current) return
+    setSteps([])
+    setStepIndex(0)
+    resetOverlays()
+  }
+
+  function clearWallsOnly() {
+    if (isRunningRef.current) return
+    setGridState((prev) => {
+      const next = prev.grid.map((row) =>
+        row.map((cell) => {
+          if (cell.isStart || cell.isEnd) return { ...cell, isWall: false }
+          return { ...cell, isWall: false }
+        }),
+      )
+      return { ...prev, grid: next }
+    })
+    clearPathOnly()
   }
 
   function handleReset() {
@@ -83,6 +110,7 @@ export default function GraphVisualizer() {
     if (steps.length > 0) return steps
     const result = ALGORITHMS[algorithm].run(grid, start, end)
     setSteps(result.steps)
+    foundRef.current = result.found
     return result.steps
   }
 
@@ -90,7 +118,20 @@ export default function GraphVisualizer() {
     if (!step) return
 
     if (step.type === 'visit') {
+      setFrontier((prev) => {
+        const next = new Set(prev)
+        next.delete(nodeKey(step.node))
+        return next
+      })
       setVisited((prev) => {
+        const next = new Set(prev)
+        next.add(nodeKey(step.node))
+        return next
+      })
+    }
+
+    if (step.type === 'enqueue' || step.type === 'push' || step.type === 'relax') {
+      setFrontier((prev) => {
         const next = new Set(prev)
         next.add(nodeKey(step.node))
         return next
@@ -110,6 +151,9 @@ export default function GraphVisualizer() {
     const st = ensureSteps()
     if (stepIndex >= st.length) return
 
+    // Starting a run should clear previous overlays/messages.
+    resetOverlays()
+
     setIsRunning(true)
     isRunningRef.current = true
 
@@ -125,6 +169,8 @@ export default function GraphVisualizer() {
       if (stepIndexRef.current >= st.length) {
         setIsRunning(false)
         isRunningRef.current = false
+
+        setResult(foundRef.current ? 'found' : 'not_found')
         return
       }
 
@@ -258,11 +304,55 @@ export default function GraphVisualizer() {
           isRunning={isRunning}
           canNext={canNext}
           meta={meta}
-        />
+        >
+          <div className="rounded-lg border border-slate-800 bg-slate-950/40 p-3 text-xs text-slate-200">
+            <div className="font-semibold text-slate-100">Legend</div>
+            <div className="mt-2 grid grid-cols-2 gap-2">
+              <LegendItem label="Empty" className="bg-blue-400" />
+              <LegendItem label="Frontier" className="bg-yellow-300" />
+              <LegendItem label="Visited" className="bg-red-400" />
+              <LegendItem label="Path" className="bg-green-400" />
+              <LegendItem label="Wall" className="bg-slate-800" />
+              <div className="flex items-center gap-2">
+                <span className="inline-block h-3 w-3 rounded-sm bg-green-400 ring-2 ring-slate-950" />
+                <span>Start / End</span>
+              </div>
+            </div>
+
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={clearPathOnly}
+                disabled={isRunning}
+                className="h-10 rounded-lg bg-slate-800 px-3 text-sm font-medium hover:bg-slate-700 disabled:opacity-50"
+              >
+                Clear Path
+              </button>
+              <button
+                type="button"
+                onClick={clearWallsOnly}
+                disabled={isRunning}
+                className="h-10 rounded-lg bg-slate-800 px-3 text-sm font-medium hover:bg-slate-700 disabled:opacity-50"
+              >
+                Clear Walls
+              </button>
+            </div>
+
+            <div className="mt-3 text-slate-400">
+              Tip: drag Start/End • click/drag to paint walls
+            </div>
+          </div>
+        </Controls>
       </div>
 
       <div className="rounded-xl border border-slate-800 bg-slate-900/20 p-4">
         <div className="mb-3 text-xs text-slate-400">Drag Start/End to move • Click/drag to add/remove walls</div>
+
+        {result === 'not_found' ? (
+          <div className="mb-3 rounded-lg border border-slate-800 bg-slate-950/40 p-3 text-sm text-slate-200">
+            No path found for the current grid.
+          </div>
+        ) : null}
 
         <div
           className="mx-auto grid w-full max-w-6xl select-none"
@@ -274,19 +364,20 @@ export default function GraphVisualizer() {
           {grid.flat().map((cell) => {
             const key = nodeKey(cell)
             const isVisited = visited.has(key)
+            const isFrontier = frontier.has(key)
             const isPath = path.has(key)
 
             const base = 'border border-slate-800/70'
-            const color = cell.isStart
-              ? 'bg-green-400'
-              : cell.isEnd
-                ? 'bg-green-400'
-                : cell.isWall
-                  ? 'bg-slate-800'
-                  : isPath
-                    ? 'bg-green-400'
-                    : isVisited
-                      ? 'bg-red-400'
+            const color = cell.isWall
+              ? 'bg-slate-800'
+              : cell.isStart || cell.isEnd
+                ? 'bg-green-400 ring-2 ring-slate-950'
+                : isPath
+                  ? 'bg-green-400'
+                  : isVisited
+                    ? 'bg-red-400'
+                    : isFrontier
+                      ? 'bg-yellow-300'
                       : 'bg-blue-400'
 
             return (
@@ -307,6 +398,15 @@ export default function GraphVisualizer() {
           Tip: Use “Next” to step through visits/path.
         </div>
       </div>
+    </div>
+  )
+}
+
+function LegendItem({ label, className }) {
+  return (
+    <div className="flex items-center gap-2">
+      <span className={`inline-block h-3 w-3 rounded-sm ${className}`} />
+      <span>{label}</span>
     </div>
   )
 }

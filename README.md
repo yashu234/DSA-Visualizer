@@ -36,6 +36,20 @@ npm install
 npm run dev
 ```
 
+## Graph-advanced version
+
+There is also a `graph-advance` branch focused on making the Graph visualizer feel more polished:
+
+- Frontier vs visited vs path highlighting
+- Built-in legend + quick actions (Clear Path / Clear Walls)
+- Reliable “No path found” message
+
+```bash
+git checkout graph-advance
+npm install
+npm run dev
+```
+
 ## Notes
 
 - Animations are driven by step arrays, not by sorting/pathfinding directly.
