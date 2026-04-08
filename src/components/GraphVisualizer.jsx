@@ -6,11 +6,13 @@ import { createGrid, moveSpecialNode, setWall, nodeKey } from '../utils/gridUtil
 import { bfsSteps, bfsMeta } from '../algorithms/graph/bfs.js'
 import { dfsSteps, dfsMeta } from '../algorithms/graph/dfs.js'
 import { dijkstraSteps, dijkstraMeta } from '../algorithms/graph/dijkstra.js'
+import { aStarSteps, aStarMeta } from '../algorithms/graph/astar.js'
 
 const ALGORITHMS = {
   bfs: { label: 'BFS', run: bfsSteps, meta: bfsMeta },
   dfs: { label: 'DFS', run: dfsSteps, meta: dfsMeta },
   dijkstra: { label: 'Dijkstra', run: dijkstraSteps, meta: dijkstraMeta },
+  astar: { label: 'A*', run: aStarSteps, meta: aStarMeta },
 }
 
 export default function GraphVisualizer() {
@@ -33,6 +35,8 @@ export default function GraphVisualizer() {
 
   const mouseDownRef = useRef(false)
   const invalidatedThisDragRef = useRef(false)
+  const dragModeRef = useRef(null) // 'start' | 'end' | 'wall'
+  const paintWallToRef = useRef(true)
 
   const algoOptions = useMemo(
     () => Object.entries(ALGORITHMS).map(([value, a]) => ({ value, label: a.label })),
@@ -160,7 +164,7 @@ export default function GraphVisualizer() {
     return () => clearTimer()
   }, [])
 
-  function updateCell(pos, intent) {
+  function updateCell(pos, intent, wallValue) {
     // intent: 'wall' | 'start' | 'end'
     setGridState((prev) => {
       if (intent === 'start') {
@@ -176,17 +180,9 @@ export default function GraphVisualizer() {
         return { grid: nextGrid, start: prev.start, end: pos }
       }
 
-      const cell = prev.grid[pos.row][pos.col]
-      const nextGrid = setWall(prev.grid, pos, !cell.isWall)
+      const nextGrid = setWall(prev.grid, pos, Boolean(wallValue))
       return { ...prev, grid: nextGrid }
     })
-  }
-
-  function getIntentFromEvent(e) {
-    // Beginner-friendly: click to wall; Shift+Click to move Start; Alt+Click to move End.
-    if (e.shiftKey) return 'start'
-    if (e.altKey) return 'end'
-    return 'wall'
   }
 
   function onMouseDown(e, pos) {
@@ -194,51 +190,79 @@ export default function GraphVisualizer() {
     mouseDownRef.current = true
     invalidatedThisDragRef.current = false
 
+    // Decide drag mode.
+    const cell = grid[pos.row][pos.col]
+    if (cell.isStart) {
+      dragModeRef.current = 'start'
+    } else if (cell.isEnd) {
+      dragModeRef.current = 'end'
+    } else {
+      dragModeRef.current = 'wall'
+      paintWallToRef.current = !cell.isWall
+    }
+
     if (!invalidatedThisDragRef.current) {
       invalidateRunState()
       invalidatedThisDragRef.current = true
     }
-    updateCell(pos, getIntentFromEvent(e))
+
+    if (dragModeRef.current === 'start') {
+      updateCell(pos, 'start')
+    } else if (dragModeRef.current === 'end') {
+      updateCell(pos, 'end')
+    } else {
+      updateCell(pos, 'wall', paintWallToRef.current)
+    }
   }
 
   function onMouseEnter(e, pos) {
     if (isRunningRef.current) return
     if (!mouseDownRef.current) return
-    // Dragging only toggles walls (not start/end) to avoid surprising behavior.
-    updateCell(pos, 'wall')
+
+    if (dragModeRef.current === 'start') {
+      updateCell(pos, 'start')
+      return
+    }
+    if (dragModeRef.current === 'end') {
+      updateCell(pos, 'end')
+      return
+    }
+
+    updateCell(pos, 'wall', paintWallToRef.current)
   }
 
   function onMouseUp() {
     mouseDownRef.current = false
     invalidatedThisDragRef.current = false
+    dragModeRef.current = null
   }
 
   const canNext = stepIndex < (steps.length || 1)
 
   return (
-    <div className="space-y-4" onMouseLeave={onMouseUp}>
-      <Controls
-        title="Graph Controls"
-        algorithm={algorithm}
-        algorithmOptions={algoOptions}
-        onAlgorithmChange={setAlgorithm}
-        speed={speed}
-        onSpeedChange={setSpeed}
-        onGenerate={handleGenerate}
-        generateLabel="New Grid"
-        onStart={run}
-        onPause={pause}
-        onReset={handleReset}
-        onNext={next}
-        isRunning={isRunning}
-        canNext={canNext}
-        meta={meta}
-      />
+    <div className="grid gap-4 lg:grid-cols-[380px,1fr]" onMouseLeave={onMouseUp}>
+      <div className="space-y-4">
+        <Controls
+          title="Graph Controls"
+          algorithm={algorithm}
+          algorithmOptions={algoOptions}
+          onAlgorithmChange={setAlgorithm}
+          speed={speed}
+          onSpeedChange={setSpeed}
+          onGenerate={handleGenerate}
+          generateLabel="New Grid"
+          onStart={run}
+          onPause={pause}
+          onReset={handleReset}
+          onNext={next}
+          isRunning={isRunning}
+          canNext={canNext}
+          meta={meta}
+        />
+      </div>
 
       <div className="rounded-xl border border-slate-800 bg-slate-900/20 p-4">
-        <div className="mb-3 text-xs text-slate-400">
-          Click: wall • Drag: paint walls • Shift+Click: move Start • Alt+Click: move End
-        </div>
+        <div className="mb-3 text-xs text-slate-400">Drag Start/End to move • Click/drag to add/remove walls</div>
 
         <div
           className="mx-auto grid w-full max-w-6xl select-none"

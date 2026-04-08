@@ -16,6 +16,7 @@ export default function Controls({
   isRunning,
   canNext,
   meta,
+  children,
 }) {
   const speedLabel = useMemo(() => {
     if (speed <= 10) return 'Fast'
@@ -107,6 +108,8 @@ export default function Controls({
           </div>
         </div>
       </div>
+
+      {children ? <div className="mt-4">{children}</div> : null}
     </div>
   )
 }
